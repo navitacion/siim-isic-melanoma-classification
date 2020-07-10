@@ -1,0 +1,67 @@
+import torch
+from torch import nn
+
+
+class TestNet(nn.Module):
+    def __init__(self, output_size=1):
+        super(TestNet, self).__init__()
+
+        self.block_1 = nn.Sequential(
+            nn.Conv2d(3, 64, kernel_size=5, stride=2, padding=1),
+            nn.BatchNorm2d(64),
+            nn.ReLU(inplace=True)
+        )
+
+        self.block_2 = nn.Sequential(
+            nn.Conv2d(64, 64, kernel_size=5),
+            nn.BatchNorm2d(64),
+            nn.ReLU(inplace=True)
+        )
+
+        self.pool_1 = nn.MaxPool2d((2, 2))
+
+        self.block_3 = nn.Sequential(
+            nn.Conv2d(64, 64, kernel_size=5),
+            nn.BatchNorm2d(64),
+            nn.ReLU(inplace=True)
+        )
+
+        self.block_4 = nn.Sequential(
+            nn.Conv2d(64, 128, kernel_size=5),
+            nn.BatchNorm2d(128),
+            nn.ReLU(inplace=True)
+        )
+
+        self.pool_2 = nn.MaxPool2d((2, 2))
+
+        self.block_5 = nn.Sequential(
+            nn.Conv2d(128, 128, kernel_size=5),
+            nn.BatchNorm2d(128),
+            nn.ReLU(inplace=True)
+        )
+
+        self.block_6 = nn.Sequential(
+            nn.Conv2d(128, 256, kernel_size=5),
+            nn.BatchNorm2d(256),
+            nn.ReLU(inplace=True)
+        )
+
+        self.global_pool = nn.AdaptiveMaxPool2d((1, 1))
+
+        self.linear = nn.Linear(in_features=256, out_features=output_size)
+
+    def forward(self, x):
+        b, c, h, w = x.size()
+        x = self.block_1(x)
+        x = self.block_2(x)
+        x = self.pool_1(x)
+        x = self.block_3(x)
+        x = self.block_4(x)
+        x = self.pool_2(x)
+        x = self.block_5(x)
+        x = self.block_6(x)
+        x = self.global_pool(x)
+        x = x.view(b, -1)
+        x = self.linear(x)
+
+        return x

@@ -1,0 +1,4 @@
+mlruns/*
+.venv/*
+hydra_output/*
+test/*

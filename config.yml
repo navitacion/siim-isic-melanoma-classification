@@ -1,0 +1,10 @@
+hydra:
+  run:
+    dir: hydra_output/
+
+exp:
+  exp_name: test
+
+train:
+  batch_size: 16
+  epoch: 20
