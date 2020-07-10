@@ -59,6 +59,7 @@ class MelanomaSystem(pl.LightningModule):
 
     def set_params(self):
         self.logger.log_hyperparams(dict(self.cfg.exp))
+        self.logger.log_hyperparams(dict(self.cfg.train))
 
     def forward(self, x):
         return self.net(x)

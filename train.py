@@ -31,7 +31,7 @@ def main(cfg: DictConfig):
     trainer = Trainer(
         logger=logger,
         max_epochs=cfg.train.epoch,
-        # gpus=[0]
+        gpus=[0]
         )
 
     trainer.fit(model)
