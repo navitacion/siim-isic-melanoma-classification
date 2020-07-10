@@ -27,7 +27,6 @@ class MelanomaSystem(pl.LightningModule):
         self.best_loss = 1e+9
 
     def prepare_data(self):
-        # train_valid_split
         # StratifiedKFold
         cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=0)
         self.df['fold'] = -1
@@ -80,9 +79,6 @@ class MelanomaSystem(pl.LightningModule):
         avg_loss = torch.stack([x['loss'] for x in outputs]).mean()
         LOGITS = torch.stack([x['logits'] for x in outputs]).reshape((-1)).detach().cpu().numpy()
         LABELS = torch.stack([x['labels'] for x in outputs]).reshape((-1)).detach().cpu().numpy()
-
-        print(LOGITS)
-        print(LABELS)
 
         auc = roc_auc_score(y_true=LABELS, y_score=LOGITS)
         logs = {'train/loss': avg_loss.item(), 'train/auc': auc}
