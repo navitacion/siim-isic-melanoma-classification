@@ -9,6 +9,7 @@ from src.lightning import MelanomaSystem
 from src.models import TestNet
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers.mlflow import MLFlowLogger
+from comet_ml import Experiment
 
 
 @hydra.main('config.yml')
@@ -16,6 +17,9 @@ def main(cfg: DictConfig):
     data_dir = './input'
     cur_dir = hydra.utils.get_original_cwd()
     os.chdir(cur_dir)
+
+    experiment = Experiment(api_key='LSTIie51umcysQtnef1Zzil6V', project_name='siim')
+
     train = pd.read_csv(os.path.join(data_dir, 'train.csv'))
 
     # DownSampling
@@ -24,10 +28,13 @@ def main(cfg: DictConfig):
     train = pd.concat([train, temp], axis=0, ignore_index=True)
     train = train.sample(frac=1.0).reset_index(drop=True)
 
-    img_paths = glob.glob(os.path.join(data_dir, 'train', '*.dcm'))
+    img_paths = {
+        'train': glob.glob(os.path.join(data_dir, 'train', '*.dcm')),
+        'test': glob.glob(os.path.join(data_dir, 'test', '*.dcm')),
+    }
     net = TestNet()
     logger = MLFlowLogger(experiment_name='test')
-    model = MelanomaSystem(net, cfg, img_paths, train)
+    model = MelanomaSystem(net, cfg, img_paths, train, experiment)
     trainer = Trainer(
         logger=logger,
         max_epochs=cfg.train.epoch,

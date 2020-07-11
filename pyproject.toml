@@ -20,6 +20,7 @@ jupyterlab = "^2.1.5"
 pandas-profiling = "^2.8.0"
 opencv-python = "^4.3.0"
 albumentations = "^0.4.6"
+comet_ml = "^3.1.12"
 
 [tool.poetry.dev-dependencies]
 
