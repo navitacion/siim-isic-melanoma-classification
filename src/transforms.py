@@ -7,9 +7,15 @@ class ImageTransform:
         self.transform = {
             'train': albu.Compose([
                 albu.Resize(img_size, img_size),
+                albu.HorizontalFlip(p=0.5),
+                albu.VerticalFlip(p=0.5),
                 ToTensorV2()
             ]),
             'val': albu.Compose([
+                albu.Resize(img_size, img_size),
+                ToTensorV2()
+            ]),
+            'test': albu.Compose([
                 albu.Resize(img_size, img_size),
                 ToTensorV2()
             ])
