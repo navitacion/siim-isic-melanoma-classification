@@ -65,7 +65,7 @@ class MelanomaSystem(pl.LightningModule):
 
     def configure_optimizers(self):
         optimizer = RAdam(self.parameters(), lr=self.cfg.train.lr)
-        scheduler = CosineAnnealingLR(optimizer, T_max=self.epoch_num,
+        scheduler = CosineAnnealingLR(optimizer, T_max=self.cfg.train.epoch,
                                       eta_min=self.cfg.train.lr * 0.01)
         return [optimizer], [scheduler]
 
