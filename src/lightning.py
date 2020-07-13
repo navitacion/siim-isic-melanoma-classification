@@ -51,16 +51,22 @@ class MelanomaSystem(pl.LightningModule):
     def train_dataloader(self):
         return DataLoader(self.train_dataset,
                           batch_size=self.cfg.train.batch_size,
+                          pin_memory=True,
+                          num_workers=4,
                           sampler=RandomSampler(self.train_dataset), drop_last=False)
 
     def val_dataloader(self):
         return DataLoader(self.val_dataset,
                           batch_size=self.cfg.train.batch_size,
+                          pin_memory=True,
+                          num_workers=4,
                           sampler=SequentialSampler(self.val_dataset), drop_last=False)
 
     def test_dataloader(self):
         return DataLoader(self.test_dataset,
                           batch_size=self.cfg.train.batch_size,
+                          pin_memory=True,
+                          num_workers=4,
                           shuffle=False, drop_last=False)
 
     def configure_optimizers(self):
