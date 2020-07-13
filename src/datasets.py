@@ -55,7 +55,10 @@ class MelanomaDataset(Dataset):
 
     def __getitem__(self, idx):
         row = self.df.iloc[idx]
-        img_name = row['image_id']
+        if self.phase != 'test':
+            img_name = row['image_id']
+        else:
+            img_name = row['image_name']
         img_path = [path for path in self.img_paths if img_name in path][0]
         img = cv2.imread(img_path, cv2.IMREAD_COLOR)
 
@@ -66,9 +69,10 @@ class MelanomaDataset(Dataset):
 
         img = img / 255.
 
-        label = row['target']
-        if label is None and self.phase != 'test':
+        if self.phase == 'test':
             label = 0.5
+        else:
+            label = row['target']
         label = torch.tensor(label, dtype=torch.float)
 
         return img, label, img_name

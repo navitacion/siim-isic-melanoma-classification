@@ -9,6 +9,7 @@ import os
 from .datasets import MelanomaDataset
 from .transforms import ImageTransform
 from torch.utils.data.sampler import RandomSampler, SequentialSampler
+from torch.optim.lr_scheduler import CosineAnnealingLR
 from pytorch_lightning.metrics.classification import AUROC
 from torch_optimizer import RAdam
 
@@ -64,7 +65,9 @@ class MelanomaSystem(pl.LightningModule):
 
     def configure_optimizers(self):
         optimizer = RAdam(self.parameters(), lr=self.cfg.train.lr)
-        return optimizer
+        scheduler = CosineAnnealingLR(optimizer, T_max=self.epoch_num,
+                                      eta_min=self.cfg.train.lr * 0.01)
+        return [optimizer], [scheduler]
 
     def set_params(self):
         # Log Parameters
@@ -131,7 +134,7 @@ class MelanomaSystem(pl.LightningModule):
         return {'preds': logits, 'image_names': img_name}
 
     def test_epoch_end(self, outputs):
-        PREDS = torch.cat([x['preds'] for x in outputs]).reshape((-1)).detach().cpu().numpy()
+        PREDS = torch.cat([x['preds'] for x in outputs]).detach().cpu().numpy()
         # [tuple, tuple]
         IMG_NAMES = [x['image_names'] for x in outputs]
         # [list, list]

@@ -50,7 +50,7 @@ def main(cfg: DictConfig):
         verbose=True,
         monitor='avg_val_loss',
         mode='min',
-        prefix=cfg.exp.exp_name
+        prefix=cfg.exp.exp_name + '_'
     )
 
     trainer = Trainer(
