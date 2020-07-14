@@ -6,11 +6,11 @@ exp:
   exp_name: test
 
 data:
-  img_size: 512
+  img_size: 456
 
 train:
-  batch_size: 32
-  epoch: 10
+  batch_size: 48
+  epoch: 20
   seed: 42
   fold: 0
   lr: 0.0001

@@ -66,13 +66,12 @@ class MelanomaDataset(Dataset):
             img = self.transform(img, self.phase)
         else:
             img = torch.from_numpy(img.transpose((2, 0, 1)))
-
-        img = img / 255.
+            img = img / 255.
 
         if self.phase == 'test':
-            label = 0.5
+            return img, img_name
         else:
             label = row['target']
-        label = torch.tensor(label, dtype=torch.float)
+            label = torch.tensor(label, dtype=torch.float)
 
-        return img, label, img_name
+        return img, label

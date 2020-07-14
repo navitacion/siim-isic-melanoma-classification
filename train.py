@@ -11,7 +11,7 @@ from pytorch_lightning import Trainer
 from comet_ml import Experiment
 
 from pytorch_lightning.callbacks import ModelCheckpoint
-from src.transforms import ImageTransform
+from src.transforms import ImageTransform, ImageTransform_2
 
 
 @hydra.main('config.yml')
@@ -39,7 +39,7 @@ def main(cfg: DictConfig):
 
     # Model  ####################################################################
     net = TestNet()
-    transform = ImageTransform(img_size=cfg.data.img_size)
+    transform = ImageTransform_2(img_size=cfg.data.img_size)
 
     # Lightning Module  #########################################################
     model = MelanomaSystem(net, cfg, img_paths, train, test, transform, experiment)

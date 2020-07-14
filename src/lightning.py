@@ -80,12 +80,14 @@ class MelanomaSystem(pl.LightningModule):
         self.experiment.log_parameters(dict(self.cfg.exp))
         self.experiment.log_parameters(dict(self.cfg.data))
         self.experiment.log_parameters(dict(self.cfg.train))
+        # Log Model Graph
+        self.experiment.set_model_graph(str(self.net))
 
     def forward(self, x):
         return self.net(x)
 
     def step(self, batch):
-        inp, label, img_name = batch
+        inp, label = batch
         out = self.forward(inp)
 
         if label is not None:
@@ -94,10 +96,10 @@ class MelanomaSystem(pl.LightningModule):
         else:
             loss = None
 
-        return loss, label, torch.sigmoid(out), img_name
+        return loss, label, torch.sigmoid(out)
 
     def training_step(self, batch, batch_idx):
-        loss, label, logits, _ = self.step(batch)
+        loss, label, logits = self.step(batch)
 
         logs = {'train/loss': loss.item()}
         self.experiment.log_metrics(logs, step=batch_idx)
@@ -105,7 +107,7 @@ class MelanomaSystem(pl.LightningModule):
         return {'loss': loss, 'logits': logits, 'labels': label}
 
     def validation_step(self, batch, batch_idx):
-        loss, label, logits, _ = self.step(batch)
+        loss, label, logits = self.step(batch)
 
         val_logs = {'val/loss': loss.item()}
         self.experiment.log_metrics(val_logs, step=batch_idx)
@@ -135,12 +137,14 @@ class MelanomaSystem(pl.LightningModule):
         return {'avg_val_loss': avg_loss}
 
     def test_step(self, batch, batch_idx):
-        loss, _, logits, img_name = self.step(batch)
+        inp, img_name = batch
+        out = self.forward(inp)
+        logits = torch.sigmoid(out)
 
         return {'preds': logits, 'image_names': img_name}
 
     def test_epoch_end(self, outputs):
-        PREDS = torch.cat([x['preds'] for x in outputs]).detach().cpu().numpy()
+        PREDS = torch.cat([x['preds'] for x in outputs]).reshape((-1)).detach().cpu().numpy()
         # [tuple, tuple]
         IMG_NAMES = [x['image_names'] for x in outputs]
         # [list, list]
@@ -149,8 +153,13 @@ class MelanomaSystem(pl.LightningModule):
 
         res = pd.DataFrame({
             'image_name': IMG_NAMES,
-            'target': PREDS.tolist()
+            'target': PREDS
         })
+        # なぜか[]でくくられるのを解消
+        try:
+            res['target'] = res['target'].apply(lambda x: x.replace('[', '').replace(']', ''))
+        except:
+            pass
         filename = 'submission.csv'
         res.to_csv(filename, index=False)
         self.experiment.log_asset(file_data=filename, file_name=filename)
