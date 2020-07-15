@@ -22,6 +22,7 @@ opencv-python = "^4.3.0"
 albumentations = "^0.4.6"
 comet_ml = "^3.1.12"
 torch_optimizer = "^0.0.1-alpha.13"
+efficientnet-pytorch = "^0.6.3"
 
 [tool.poetry.dev-dependencies]
 

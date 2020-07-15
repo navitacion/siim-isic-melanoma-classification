@@ -8,10 +8,12 @@ import pytorch_lightning as pl
 import os
 from .datasets import MelanomaDataset
 from .transforms import ImageTransform
+
 from torch.utils.data.sampler import RandomSampler, SequentialSampler
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from pytorch_lightning.metrics.classification import AUROC
 from torch_optimizer import RAdam
+from warmup_scheduler import GradualWarmupScheduler
 
 
 # Config  #######################
@@ -70,10 +72,14 @@ class MelanomaSystem(pl.LightningModule):
                           shuffle=False, drop_last=False)
 
     def configure_optimizers(self):
-        optimizer = RAdam(self.parameters(), lr=self.cfg.train.lr)
-        scheduler = CosineAnnealingLR(optimizer, T_max=self.cfg.train.epoch,
-                                      eta_min=self.cfg.train.lr * 0.01)
-        return [optimizer], [scheduler]
+        self.optimizer = RAdam(self.parameters(), lr=self.cfg.train.lr)
+
+        warmup_epo = 1
+        warmup_factor = 10
+        scheduler_cos = CosineAnnealingLR(self.optimizer, T_max=self.cfg.train.epoch - warmup_epo, eta_min=0)
+        self.scheduler = GradualWarmupScheduler(self.optimizer, multiplier=warmup_factor,
+                                                total_epoch=warmup_epo, after_scheduler=scheduler_cos)
+        return [self.optimizer], [self.scheduler]
 
     def set_params(self):
         # Log Parameters

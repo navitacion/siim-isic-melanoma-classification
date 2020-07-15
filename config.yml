@@ -9,8 +9,9 @@ data:
   img_size: 456
 
 train:
-  batch_size: 48
-  epoch: 20
+  batch_size: 16
+  epoch: 10
   seed: 42
   fold: 0
   lr: 0.0001
+  model_name: efficientnet-b0

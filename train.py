@@ -5,7 +5,7 @@ import hydra
 from omegaconf import DictConfig
 
 from src.lightning import MelanomaSystem
-from src.models import TestNet
+from src.models import TestNet, ENet
 from src.utils import seed_everything
 from pytorch_lightning import Trainer
 from comet_ml import Experiment
@@ -38,7 +38,7 @@ def main(cfg: DictConfig):
     }
 
     # Model  ####################################################################
-    net = TestNet()
+    net = ENet(model_name=cfg.train.model_name)
     transform = ImageTransform_2(img_size=cfg.data.img_size)
 
     # Lightning Module  #########################################################
