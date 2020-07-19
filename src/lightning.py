@@ -1,5 +1,6 @@
 import pandas as pd
 import itertools
+import glob
 import torch
 from torch import nn
 import torch.nn.functional as F
@@ -8,6 +9,7 @@ import pytorch_lightning as pl
 import os
 from .datasets import MelanomaDataset
 from .transforms import ImageTransform
+from .losses import FocalLoss
 
 from torch.utils.data.sampler import RandomSampler, SequentialSampler
 from torch.optim.lr_scheduler import CosineAnnealingLR
@@ -18,10 +20,11 @@ from warmup_scheduler import GradualWarmupScheduler
 
 # Config  #######################
 label_smoothing = 0.2
+pos_weight = 3.1
 
 
 class MelanomaSystem(pl.LightningModule):
-    def __init__(self, net, cfg, img_paths, train_df, test_df, transform, experiment):
+    def __init__(self, net, cfg, img_paths, train_df, test_df, transform, experiment, test_num=20):
         super(MelanomaSystem, self).__init__()
         self.net = net
         self.cfg = cfg
@@ -32,8 +35,9 @@ class MelanomaSystem(pl.LightningModule):
         self.train_dataset = None
         self.val_dataset = None
         self.test_dataset = None
+        self.test_num = test_num
         self.experiment = experiment
-        self.criterion = nn.BCEWithLogitsLoss()
+        self.criterion = nn.BCEWithLogitsLoss(pos_weight=torch.tensor(pos_weight))
         self.best_loss = 1e+9
         self.epoch_num = 0
 
@@ -54,21 +58,18 @@ class MelanomaSystem(pl.LightningModule):
         return DataLoader(self.train_dataset,
                           batch_size=self.cfg.train.batch_size,
                           pin_memory=True,
-                          num_workers=4,
-                          sampler=RandomSampler(self.train_dataset), drop_last=False)
+                          sampler=RandomSampler(self.train_dataset), drop_last=True)
 
     def val_dataloader(self):
         return DataLoader(self.val_dataset,
                           batch_size=self.cfg.train.batch_size,
                           pin_memory=True,
-                          num_workers=4,
                           sampler=SequentialSampler(self.val_dataset), drop_last=False)
 
     def test_dataloader(self):
         return DataLoader(self.test_dataset,
                           batch_size=self.cfg.train.batch_size,
-                          pin_memory=True,
-                          num_workers=4,
+                          pin_memory=False,
                           shuffle=False, drop_last=False)
 
     def configure_optimizers(self):
@@ -130,6 +131,7 @@ class MelanomaSystem(pl.LightningModule):
         logs = {'val/epoch_loss': avg_loss.item(), 'val/epoch_auc': auc}
         # Log loss, auc
         self.experiment.log_metrics(logs, step=self.epoch_num)
+        # Update Epoch Num
         self.epoch_num += 1
 
         # Save Weights
@@ -166,9 +168,9 @@ class MelanomaSystem(pl.LightningModule):
             res['target'] = res['target'].apply(lambda x: x.replace('[', '').replace(']', ''))
         except:
             pass
-        filename = 'submission.csv'
+        N = len(glob.glob('submission*.csv'))
+        filename = f'submission_{N}.csv'
         res.to_csv(filename, index=False)
         self.experiment.log_asset(file_data=filename, file_name=filename)
-        os.remove('submission.csv')
 
         return {'res': res}

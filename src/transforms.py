@@ -32,8 +32,7 @@ class ImageTransform:
 # https://www.kaggle.com/hmendonca/melanoma-neat-pytorch-lightning-native-amp
 class ImageTransform_2:
     
-    def __init__(self, img_size=512):
-        input_res = 512
+    def __init__(self, img_size=512, input_res=512):
         self.transform = {
             'train': albu.Compose([
                 albu.ImageCompression(p=0.5),
@@ -64,7 +63,7 @@ class ImageTransform_2:
 
             'test': albu.Compose([
                 albu.ImageCompression(p=0.5),
-                albu.RandomSizedCrop(min_max_height=(int(img_size*0.9), int(img_size*1.1)),
+                albu.RandomSizedCrop(min_max_height=(int(img_size*0.9), input_res),
                                      height=img_size, width=img_size, p=1.0),
                 albu.HorizontalFlip(p=0.5),
                 albu.VerticalFlip(p=0.5),

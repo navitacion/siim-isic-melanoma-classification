@@ -6,7 +6,7 @@ exp:
   exp_name: test
 
 data:
-  img_size: 456
+  img_size: 256
 
 train:
   batch_size: 16
