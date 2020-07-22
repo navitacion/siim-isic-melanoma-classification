@@ -24,7 +24,7 @@ pos_weight = 3.1
 
 
 class MelanomaSystem(pl.LightningModule):
-    def __init__(self, net, cfg, img_paths, train_df, test_df, transform, experiment, test_num=20):
+    def __init__(self, net, cfg, img_paths, train_df, test_df, transform, experiment):
         super(MelanomaSystem, self).__init__()
         self.net = net
         self.cfg = cfg
@@ -35,10 +35,10 @@ class MelanomaSystem(pl.LightningModule):
         self.train_dataset = None
         self.val_dataset = None
         self.test_dataset = None
-        self.test_num = test_num
         self.experiment = experiment
         self.criterion = nn.BCEWithLogitsLoss(pos_weight=torch.tensor(pos_weight))
         self.best_loss = 1e+9
+        self.best_auc = None
         self.epoch_num = 0
 
     def prepare_data(self):
@@ -141,6 +141,7 @@ class MelanomaSystem(pl.LightningModule):
             torch.save(self.net.state_dict(), filename)
             self.experiment.log_model(name=filename, file_or_folder='./'+filename)
             os.remove(filename)
+            self.best_auc = auc
 
         return {'avg_val_loss': avg_loss}
 

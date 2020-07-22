@@ -6,7 +6,7 @@ from omegaconf import DictConfig
 from sklearn.model_selection import StratifiedKFold
 
 from src.lightning import MelanomaSystem
-from src.models import TestNet, ENet
+from src.models import TestNet, ENet, ENet_2
 from src.utils import seed_everything
 from pytorch_lightning import Trainer
 from comet_ml import Experiment
@@ -44,7 +44,7 @@ def main(cfg: DictConfig):
     # }
 
     # Chris Dataset
-    chris_image_size = 192
+    chris_image_size = 384
     _data_dir = f'./input/_Chris_Dataset_{chris_image_size}'
     train = pd.read_csv(os.path.join(_data_dir, 'train.csv'), usecols=['image_name', 'target'])
     # StratifiedKFold
@@ -77,7 +77,7 @@ def main(cfg: DictConfig):
     )
 
     trainer = Trainer(
-        # resume_from_checkpoint='./checkpoint/enet_b2_4_epoch=9.ckpt',
+        # resume_from_checkpoint='./checkpoint/enet_b2_1_384_epoch=17.ckpt',
         max_epochs=cfg.train.epoch,
         checkpoint_callback=checkpoint_callback,
         gpus=[0]
@@ -86,6 +86,7 @@ def main(cfg: DictConfig):
     # Train & Test  ############################################################
     # Train
     trainer.fit(model)
+    experiment.log_metric('best_auc', model.best_auc)
 
     # Test
     for i in range(test_num):
