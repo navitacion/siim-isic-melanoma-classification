@@ -13,7 +13,7 @@ from .losses import FocalLoss
 
 from torch.utils.data.sampler import RandomSampler, SequentialSampler
 from torch.optim.lr_scheduler import CosineAnnealingLR
-from pytorch_lightning.metrics.classification import AUROC
+from pytorch_lightning.metrics.classification import AUROC, F1, Recall
 from torch.optim import AdamW
 from torch_optimizer import RAdam
 from warmup_scheduler import GradualWarmupScheduler
@@ -128,7 +128,9 @@ class MelanomaSystem(pl.LightningModule):
 
         # Skip Sanity Check
         auc = AUROC()(pred=LOGITS, target=LABELS) if LABELS.float().mean() > 0 else 0.5
-        logs = {'val/epoch_loss': avg_loss.item(), 'val/epoch_auc': auc}
+        f1 = F1()(pred=LOGITS, target=LABELS)
+        recall = Recall()(pred=LOGITS, target=LABELS)
+        logs = {'val/epoch_loss': avg_loss.item(), 'val/epoch_auc': auc, 'val/f1': f1, 'val/recall': recall}
         # Log loss, auc
         self.experiment.log_metrics(logs, step=self.epoch_num)
         # Update Epoch Num
