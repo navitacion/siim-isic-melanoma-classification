@@ -46,6 +46,7 @@ class MelanomaDataset_2(Dataset):
 
     def __init__(self, df, img_paths, transform=None, phase='train'):
         self.df = df
+        self.features = [f for f in self.df.columns if f not in ['image_name', 'patient_id', 'target']]
         self.img_paths = img_paths
         self.transform = transform
         self.phase = phase
@@ -60,21 +61,7 @@ class MelanomaDataset_2(Dataset):
         else:
             img_name = row['image_name']
 
-        # d = []
-        # sex = 0 if row['sex'] == 'male' else 1
-        # d.append(sex)
-        # anatom_site_general_challenge = row['anatom_site_general_challenge']
-        # if anatom_site_general_challenge == 'torso':
-        #     a = 1
-        # elif anatom_site_general_challenge == 'lower extremity':
-        #     a = 2
-        # elif anatom_site_general_challenge == 'upper extremity':
-        #     a = 3
-        # else:
-        #     a = 4
-        # d.append(a)
-        # d.append(row['age_approx'])
-        d = row[['sex', 'anatom_site_general_challenge', 'age_approx']]
+        d = row[self.features]
         d = torch.tensor(d, dtype=torch.float32)
 
         img_path = [path for path in self.img_paths if img_name in path][0]

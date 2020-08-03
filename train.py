@@ -3,7 +3,7 @@ import glob
 import pandas as pd
 import hydra
 from omegaconf import DictConfig
-from sklearn.model_selection import StratifiedKFold
+from sklearn.model_selection import StratifiedKFold, GroupKFold
 from sklearn.preprocessing import LabelEncoder
 
 from src.lightning import MelanomaSystem, MelanomaSystem_2
@@ -14,9 +14,9 @@ from torch.utils.data import DataLoader
 from comet_ml import Experiment
 
 from pytorch_lightning.callbacks import ModelCheckpoint
-from src.transforms import ImageTransform, ImageTransform_2
+from src.transforms import ImageTransform, ImageTransform_2, ImageTransform_3
 from src.datasets import MelanomaDataset
-from src.utils import summarize_submit
+from src.utils import summarize_submit, preprocessing_meta
 
 import warnings
 warnings.filterwarnings('ignore')
@@ -39,12 +39,6 @@ def main(cfg: DictConfig):
     chris_image_size = cfg.data.load_size
     data_dir = f'./input/_Chris_Dataset_{chris_image_size}'
     train = pd.read_csv(os.path.join(data_dir, 'train.csv'))
-    # StratifiedKFold
-    cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=cfg.train.seed)
-    train['fold'] = -1
-    for i, (trn_idx, val_idx) in enumerate(cv.split(train, train['target'])):
-        train.loc[val_idx, 'fold'] = i
-
     test = pd.read_csv(os.path.join(data_dir, 'test.csv'))
 
     img_paths = {
@@ -52,6 +46,20 @@ def main(cfg: DictConfig):
         'test': glob.glob(os.path.join(data_dir, 'test', '*.jpg'))
     }
 
+    # Cross Validation  #########################################################
+    # StratifiedKFold
+    cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=cfg.train.seed)
+    train['fold'] = -1
+    for i, (trn_idx, val_idx) in enumerate(cv.split(train, train['target'])):
+        train.loc[val_idx, 'fold'] = i
+
+    # GroupKFold
+    cv = GroupKFold(n_splits=5)
+    train['fold'] = -1
+    for i, (trn_idx, val_idx) in enumerate(cv.split(train, train['target'], groups=train['patient_id'].tolist())):
+        train.loc[val_idx, 'fold'] = i
+
+    # Preprocessing  ############################################################
     # Drop Image
     # label=0なのにpred>0.5であった画像を除外する
     drop_image_name = ['ISIC_4579531', 'ISIC_7918608', 'ISIC_0948240', 'ISIC_4904364', 'ISIC_8780369', 'ISIC_8770180',
@@ -101,22 +109,17 @@ def main(cfg: DictConfig):
                        'ISIC_2205007', 'ISIC_1447559']
     train = train[~train['image_name'].isin(drop_image_name)].reset_index(drop=True)
 
-    # Preprocessing
-    train['age_approx'].fillna(-1, inplace=True)
-    test['age_approx'].fillna(-1, inplace=True)
-    for c in ['sex', 'anatom_site_general_challenge']:
-        train[c].fillna('Nodata', inplace=True)
-        test[c].fillna('Nodata', inplace=True)
-        lbl = LabelEncoder()
-        train[c] = lbl.fit_transform(train[c].values)
-        test[c] = lbl.transform(test[c].values)
+    # Preprocessing metadata
+    # OneHotEncoder
+    train, test = preprocessing_meta(train, test)
+    features_num = len([f for f in train.columns if f not in ['image_name', 'patient_id', 'target']])
 
     # Model  ####################################################################
     if is_multimodal:
-        net = ENet_2(model_name=cfg.train.model_name)
+        net = ENet_2(model_name=cfg.train.model_name, meta_features_num=features_num)
     else:
         net = ENet(model_name=cfg.train.model_name)
-    transform = ImageTransform_2(img_size=cfg.data.img_size, input_res=chris_image_size)
+    transform = ImageTransform_3(img_size=cfg.data.img_size, input_res=chris_image_size)
 
     # Lightning Module  #########################################################
     if is_multimodal:
@@ -134,7 +137,7 @@ def main(cfg: DictConfig):
     )
 
     trainer = Trainer(
-        # resume_from_checkpoint='./checkpoint/enet_b2_6_384_epoch=9.ckpt',
+        # resume_from_checkpoint='./checkpoint/enet_b5_1_512_epoch=4.ckpt',
         max_epochs=cfg.train.epoch,
         checkpoint_callback=checkpoint_callback,
         gpus=[0]
@@ -156,18 +159,17 @@ def main(cfg: DictConfig):
     _ = summarize_submit(sub_list, experiment, filename=f'submission_all_{cfg.exp.exp_name}.csv')
 
     # oof
-    # valid_dataset = MelanomaDataset(train, img_paths['train'], transform, phase='test')
-    # valid_dataloader = DataLoader(valid_dataset, batch_size=cfg.train.batch_size, pin_memory=False,
-    #                               shuffle=False, drop_last=False)
-    # for i in range(test_num):
-    #     trainer.test(model, test_dataloaders=valid_dataloader)
-    #
-    # # Submit
-    # sub_list = glob.glob('submission*.csv')
-    # res = summarize_submit(sub_list, experiment, filename=f'submission_oof_{cfg.exp.exp_name}.csv')
-    #
+    valid_dataset = MelanomaDataset(train, img_paths['train'], transform, phase='test')
+    valid_dataloader = DataLoader(valid_dataset, batch_size=cfg.train.batch_size, pin_memory=False,
+                                  shuffle=False, drop_last=False)
+    for i in range(10):
+        trainer.test(model, test_dataloaders=valid_dataloader)
+
+    # Submit
+    sub_list = glob.glob('submission*.csv')
+    res = summarize_submit(sub_list, experiment, filename=f'submission_oof_{cfg.exp.exp_name}.csv')
+
     # res = pd.concat([train, res], axis=1)
-    # res.to_csv('ttt.csv')
 
 
 if __name__ == '__main__':

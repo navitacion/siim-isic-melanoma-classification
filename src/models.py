@@ -80,11 +80,11 @@ class ENet(nn.Module):
 
 
 class ENet_2(nn.Module):
-    def __init__(self, output_size=1, model_name='efficientnet-b0'):
+    def __init__(self, output_size=1, model_name='efficientnet-b0', meta_features_num=3):
         super(ENet_2, self).__init__()
         self.enet = EfficientNet.from_pretrained(model_name=model_name)
         self.fc = nn.Sequential(
-            nn.Linear(in_features=3, out_features=500),
+            nn.Linear(in_features=meta_features_num, out_features=500),
             nn.BatchNorm1d(500),
             nn.ReLU(inplace=True),
             nn.Dropout(0.2)

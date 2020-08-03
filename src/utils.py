@@ -3,6 +3,8 @@ import os
 import glob
 import numpy as np
 import pandas as pd
+from sklearn.preprocessing import LabelEncoder
+import category_encoders as ce
 import torch
 
 
@@ -14,6 +16,28 @@ def seed_everything(seed):
     torch.cuda.manual_seed(seed)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = True
+
+
+def preprocessing_meta(train, test):
+    train = train[['image_name', 'patient_id', 'sex', 'age_approx', 'anatom_site_general_challenge', 'target']]
+    test = test[['image_name', 'patient_id', 'sex', 'age_approx', 'anatom_site_general_challenge']]
+    test.loc[:, 'target'] = 0
+
+    # Preprocessing
+    train['age_approx'] /= train['age_approx'].max()
+    test['age_approx'] /= test['age_approx'].max()
+    train['age_approx'].fillna(0, inplace=True)
+    test['age_approx'].fillna(0, inplace=True)
+    for c in ['sex', 'anatom_site_general_challenge']:
+        train[c].fillna('Nodata', inplace=True)
+        test[c].fillna('Nodata', inplace=True)
+    encoder = ce.OneHotEncoder(cols=['sex', 'anatom_site_general_challenge'], handle_unknown='impute')
+    train = encoder.fit_transform(train)
+    test = encoder.transform(test)
+
+    del test['target']
+
+    return train, test
 
 
 def summarize_submit(sub_list, experiment, filename='submission.csv'):
