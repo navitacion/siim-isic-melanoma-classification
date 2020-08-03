@@ -19,9 +19,10 @@ def seed_everything(seed):
 
 
 def preprocessing_meta(train, test):
-    train = train[['image_name', 'patient_id', 'sex', 'age_approx', 'anatom_site_general_challenge', 'target']]
+    train = train[['image_name', 'patient_id', 'sex', 'age_approx', 'anatom_site_general_challenge', 'target', 'fold']]
     test = test[['image_name', 'patient_id', 'sex', 'age_approx', 'anatom_site_general_challenge']]
     test.loc[:, 'target'] = 0
+    test.loc[:, 'fold'] = 0
 
     # Preprocessing
     train['age_approx'] /= train['age_approx'].max()
@@ -35,7 +36,7 @@ def preprocessing_meta(train, test):
     train = encoder.fit_transform(train)
     test = encoder.transform(test)
 
-    del test['target']
+    test.drop(['target', 'fold'], axis=1, inplace=True)
 
     return train, test
 

@@ -54,10 +54,10 @@ def main(cfg: DictConfig):
         train.loc[val_idx, 'fold'] = i
 
     # GroupKFold
-    cv = GroupKFold(n_splits=5)
-    train['fold'] = -1
-    for i, (trn_idx, val_idx) in enumerate(cv.split(train, train['target'], groups=train['patient_id'].tolist())):
-        train.loc[val_idx, 'fold'] = i
+    # cv = GroupKFold(n_splits=5)
+    # train['fold'] = -1
+    # for i, (trn_idx, val_idx) in enumerate(cv.split(train, train['target'], groups=train['patient_id'].tolist())):
+    #     train.loc[val_idx, 'fold'] = i
 
     # Preprocessing  ############################################################
     # Drop Image
@@ -112,7 +112,7 @@ def main(cfg: DictConfig):
     # Preprocessing metadata
     # OneHotEncoder
     train, test = preprocessing_meta(train, test)
-    features_num = len([f for f in train.columns if f not in ['image_name', 'patient_id', 'target']])
+    features_num = len([f for f in train.columns if f not in ['image_name', 'patient_id', 'target', 'fold']])
 
     # Model  ####################################################################
     if is_multimodal:

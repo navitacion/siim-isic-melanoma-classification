@@ -46,7 +46,7 @@ class MelanomaDataset_2(Dataset):
 
     def __init__(self, df, img_paths, transform=None, phase='train'):
         self.df = df
-        self.features = [f for f in self.df.columns if f not in ['image_name', 'patient_id', 'target']]
+        self.features = [f for f in self.df.columns if f not in ['image_name', 'patient_id', 'target', 'fold']]
         self.img_paths = img_paths
         self.transform = transform
         self.phase = phase
