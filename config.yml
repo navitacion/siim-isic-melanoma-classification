@@ -10,7 +10,7 @@ data:
   img_size: 256
 
 train:
-  batch_size: 16
+  batch_size: 32
   epoch: 10
   seed: 42
   fold: 0

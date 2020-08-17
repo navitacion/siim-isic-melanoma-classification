@@ -3,26 +3,29 @@ import glob
 import pandas as pd
 import hydra
 from omegaconf import DictConfig
-from sklearn.model_selection import StratifiedKFold, GroupKFold
-from sklearn.preprocessing import LabelEncoder
+from sklearn.model_selection import GroupKFold
+from torch.utils.data import DataLoader
 
-from src.lightning import MelanomaSystem, MelanomaSystem_2
-from src.models import TestNet, ENet, ENet_2
+from src.lightning import MelanomaSystem
+from src.models import ENet
 from src.utils import seed_everything
 from pytorch_lightning import Trainer
-from torch.utils.data import DataLoader
 from comet_ml import Experiment
 
 from pytorch_lightning.callbacks import ModelCheckpoint
-from src.transforms import ImageTransform, ImageTransform_2, ImageTransform_3
-from src.datasets import MelanomaDataset
+from src.transforms import ImageTransform
 from src.utils import summarize_submit, preprocessing_meta
+from src.datasets import MelanomaDataset
 
 import warnings
 warnings.filterwarnings('ignore')
 
+# Config  ###########################
+# TTA
 test_num = 20
-is_multimodal = True
+# Comet.ml
+API_KEY = "YOUR API KEY"
+PROJECT_NAME = "YOUR PROJECT NAME"
 
 
 @hydra.main('config.yml')
@@ -32,7 +35,7 @@ def main(cfg: DictConfig):
 
     seed_everything(cfg.train.seed)
     # Comet.ml
-    experiment = Experiment(api_key='LSTIie51umcysQtnef1Zzil6V', project_name='siim', log_code=True)
+    experiment = Experiment(api_key=API_KEY, project_name=PROJECT_NAME)
 
     # Load Data  ################################################################
     # Chris Dataset
@@ -47,21 +50,14 @@ def main(cfg: DictConfig):
     }
 
     # Cross Validation  #########################################################
-    # StratifiedKFold
-    cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=cfg.train.seed)
-    train['fold'] = -1
-    for i, (trn_idx, val_idx) in enumerate(cv.split(train, train['target'])):
-        train.loc[val_idx, 'fold'] = i
-
     # GroupKFold
-    # cv = GroupKFold(n_splits=5)
-    # train['fold'] = -1
-    # for i, (trn_idx, val_idx) in enumerate(cv.split(train, train['target'], groups=train['patient_id'].tolist())):
-    #     train.loc[val_idx, 'fold'] = i
+    cv = GroupKFold(n_splits=5)
+    train['fold'] = -1
+    for i, (trn_idx, val_idx) in enumerate(cv.split(train, train['target'], groups=train['patient_id'].tolist())):
+        train.loc[val_idx, 'fold'] = i
 
     # Preprocessing  ############################################################
     # Drop Image
-    # label=0なのにpred>0.5であった画像を除外する
     drop_image_name = ['ISIC_4579531', 'ISIC_7918608', 'ISIC_0948240', 'ISIC_4904364', 'ISIC_8780369', 'ISIC_8770180',
                        'ISIC_7148656', 'ISIC_7408392', 'ISIC_9959813', 'ISIC_1894141', 'ISIC_6633174', 'ISIC_3001941',
                        'ISIC_4259290', 'ISIC_6833905', 'ISIC_7452152', 'ISIC_2744859', 'ISIC_5464206', 'ISIC_6596403',
@@ -115,17 +111,11 @@ def main(cfg: DictConfig):
     features_num = len([f for f in train.columns if f not in ['image_name', 'patient_id', 'target', 'fold']])
 
     # Model  ####################################################################
-    if is_multimodal:
-        net = ENet_2(model_name=cfg.train.model_name, meta_features_num=features_num)
-    else:
-        net = ENet(model_name=cfg.train.model_name)
-    transform = ImageTransform_3(img_size=cfg.data.img_size, input_res=chris_image_size)
+    net = ENet(model_name=cfg.train.model_name, meta_features_num=features_num)
+    transform = ImageTransform(img_size=cfg.data.img_size, input_res=chris_image_size)
 
     # Lightning Module  #########################################################
-    if is_multimodal:
-        model = MelanomaSystem_2(net, cfg, img_paths, train, test, transform, experiment)
-    else:
-        model = MelanomaSystem(net, cfg, img_paths, train, test, transform, experiment)
+    model = MelanomaSystem(net, cfg, img_paths, train, test, transform, experiment)
 
     checkpoint_callback = ModelCheckpoint(
         filepath='./checkpoint',
@@ -137,7 +127,6 @@ def main(cfg: DictConfig):
     )
 
     trainer = Trainer(
-        # resume_from_checkpoint='./checkpoint/enet_b5_1_512_epoch=4.ckpt',
         max_epochs=cfg.train.epoch,
         checkpoint_callback=checkpoint_callback,
         gpus=[0]
@@ -167,9 +156,10 @@ def main(cfg: DictConfig):
 
     # Submit
     sub_list = glob.glob('submission*.csv')
-    res = summarize_submit(sub_list, experiment, filename=f'submission_oof_{cfg.exp.exp_name}.csv')
+    _ = summarize_submit(sub_list, experiment, filename=f'submission_oof_{cfg.exp.exp_name}.csv')
 
-    # res = pd.concat([train, res], axis=1)
+    # Reset
+    del model, trainer, net, experiment
 
 
 if __name__ == '__main__':

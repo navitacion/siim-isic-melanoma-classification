@@ -4,3 +4,5 @@ hydra_output/*
 test/*
 checkpoint/*
 lightning_logs/*
+multirun/
+submission/
