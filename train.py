@@ -24,8 +24,8 @@ warnings.filterwarnings('ignore')
 # TTA
 test_num = 20
 # Comet.ml
-API_KEY = "YOUR API KEY"
-PROJECT_NAME = "YOUR PROJECT NAME"
+API_KEY = "YOUR_API_KEY"
+PROJECT_NAME = "siim-isic-melanoma-classification"
 
 
 @hydra.main('config.yml')

@@ -6,7 +6,7 @@ exp:
   exp_name: test
 
 data:
-  load_size: 256
+  load_size: 384
   img_size: 256
 
 train:
